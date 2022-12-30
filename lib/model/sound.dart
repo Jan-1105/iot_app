@@ -1,5 +1,8 @@
 class Sound {
-  Sound(this.name, this.path);
+  Sound(this.name);
   String name;
-  String path;
+
+  getPath() {
+    return "$name-sinus.wav";
+  }
 }
