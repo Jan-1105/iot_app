@@ -40,7 +40,8 @@ class _HearingPageState extends State<HearingPage> {
     bool bluetooth = await Permission.bluetooth.isGranted;
     bool bluetoothScan = await Permission.bluetoothScan.isGranted;
     bool bluetoothConnect = await Permission.bluetoothConnect.isGranted;
-    if (!(bluetooth && bluetoothScan && bluetoothConnect)) {
+    bool location = await Permission.locationWhenInUse.isGranted;
+    if (!(bluetooth && bluetoothScan && bluetoothConnect && location)) {
       await _requestPermission();
     }
     await eSenseManager.disconnect();
@@ -68,6 +69,7 @@ class _HearingPageState extends State<HearingPage> {
     await Permission.bluetooth.request();
     await Permission.bluetoothScan.request();
     await Permission.bluetoothConnect.request();
+    await Permission.locationWhenInUse.request();
   }
 
   _play() async {
@@ -76,10 +78,11 @@ class _HearingPageState extends State<HearingPage> {
     });
     _streamSubscription = eSenseManager.sensorEvents.listen((event) {
       if (event.gyro != null) {
-        if (event.gyro![0] > 0.5) {
+        print(event.gyro);
+        if (event.gyro![0] > 1000) {
           up = true;
         }
-        if (up && event.gyro![0] < -0.5) {
+        if (up && event.gyro![0] < -1000) {
           _next();
         }
       }
@@ -109,8 +112,15 @@ class _HearingPageState extends State<HearingPage> {
       _current = sounds[i].name;
       _playlist = sounds.cast<Sound>();
     });
-    await player.setSource(AssetSource(sounds[i].getPath()));
-    await player.resume();
+    String path = sounds[i].getPath();
+    Source asset = AssetSource(path);
+    try {
+      await player.setSource(asset);
+      await player.setVolume(0.01);
+      await player.resume();
+    } catch (e) {
+      print(e);
+    }
     sleep(const Duration(seconds: 2));
     if (sounds.length > i + 1) {
       _playSound(sounds, i + 1);
