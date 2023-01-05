@@ -22,10 +22,13 @@ class _HearingPageState extends State<HearingPage> {
   ESenseManager eSenseManager = ESenseManager('eSense-0678');
   bool _connected = false;
   bool _playing = false;
+  bool _play_upper = false;
+  bool _play_lower = false;
+  bool _show_result = false;
   String? _current;
-  List<Sound>? _playlist;
-  String? _maxupper;
-  String? _maxlower;
+  List<dynamic>? _playlist;
+  String _maxupper = '10000hz';
+  String _maxlower = '10000hz';
   final AudioPlayer player = AudioPlayer();
   late StreamSubscription _streamSubscription;
   bool up = false;
@@ -72,75 +75,92 @@ class _HearingPageState extends State<HearingPage> {
     await Permission.locationWhenInUse.request();
   }
 
-  _play() async {
+  _play() {
     setState(() {
       _playing = true;
     });
     _streamSubscription = eSenseManager.sensorEvents.listen((event) {
       if (event.gyro != null) {
-        print(event.gyro);
-        if (event.gyro![0] > 1000) {
-          up = true;
-        }
-        if (up && event.gyro![0] < -1000) {
+        // if (event.gyro![2] > 2000) {
+        //   up = true;
+        // }
+        if (event.gyro![2] < -2000) {
+          //up = false;
           _next();
         }
       }
     });
-    _playSound(upper, 0);
+    _playSound();
   }
 
-  _next() async {
+  _next() {
     if (_playlist == upper) {
-      _maxupper = _current;
-      _playSound(lower, 0);
+      _play_upper = false;
     } else {
-      _maxlower = _current;
+      _play_lower = false;
       _cancel();
     }
   }
 
-  _playSound(List sounds, int i) async {
-    if (!_playing) {
-      player.stop();
-      _playlist = null;
-      _current = null;
-      return;
+  _playSound() async {
+    _show_result = true;
+    setState(() {
+      _playing = true;
+    });
+    _play_upper = true;
+    _playlist = upper;
+    for (int i = 0; i < upper.length && _play_upper; i++) {
+      if (!_playing) {
+        player.stop();
+        _playlist = null;
+        _current = null;
+        return;
+      }
+      setState(() {
+        _maxupper = upper[i].name;
+        _current = upper[i].name;
+      });
+      String path = upper[i].getPath();
+      Source asset = AssetSource(path);
+      await player.pause();
+      await player.setVolume(0.05);
+      await player.setSource(asset);
+      await player.resume();
+      sleep(const Duration(seconds: 2));
+    }
+    _play_lower = true;
+    _playlist = lower;
+    for (int i = 0; i < lower.length && _play_lower; i++) {
+      if (!_playing) {
+        player.stop();
+        _playlist = null;
+        _current = null;
+        return;
+      }
+      setState(() {
+        _maxlower = lower[i].name;
+        _current = lower[i].name;
+      });
+      String path = lower[i].getPath();
+      Source asset = AssetSource(path);
+      await player.pause();
+      await player.setVolume(0.05);
+      await player.setSource(asset);
+      await player.resume();
+      sleep(const Duration(seconds: 2));
     }
 
-    setState(() {
-      _current = sounds[i].name;
-      _playlist = sounds.cast<Sound>();
-    });
-    String path = sounds[i].getPath();
-    Source asset = AssetSource(path);
-    try {
-      await player.setSource(asset);
-      await player.setVolume(0.01);
-      await player.resume();
-    } catch (e) {
-      print(e);
-    }
-    sleep(const Duration(seconds: 2));
-    if (sounds.length > i + 1) {
-      _playSound(sounds, i + 1);
-    } else {
-      if (sounds == upper) {
-        _maxupper = _current;
-        _playSound(lower, 0);
-      } else {
-        _maxlower = _current;
-        await player.pause();
-        setState(() {
-          _playing = false;
-        });
-      }
-    }
+    _cancel();
   }
 
   _cancel() async {
-    await player.pause();
+    print("eeeeeeeeeeeeeee");
+    
+    player.pause();
+    player.stop();
     _streamSubscription.cancel();
+    _play_upper = false;
+    _play_lower = false;
     setState(() {
       _playing = false;
     });
@@ -181,7 +201,8 @@ class _HearingPageState extends State<HearingPage> {
               textAlign: TextAlign.center,
             ),
             if (_playing)
-              const Text('Wenn Sie länger nichts hören dann Nicken Sie.'),
+              const Text(
+                  'Wenn Sie länger nichts hören dann Nicken Sie eindeutig.'),
             ElevatedButton(
                 style: ButtonStyle(
                   backgroundColor: MaterialStateProperty.resolveWith<Color?>(
@@ -196,7 +217,14 @@ class _HearingPageState extends State<HearingPage> {
                 onPressed: _connected ? (_playing ? _cancel : _play) : null,
                 child: Text(_connected
                     ? (_playing ? 'Test abbrechen' : 'Test starten')
-                    : 'Erst verbinden'))
+                    : 'Erst verbinden')),
+            const SizedBox(height: 80),
+            if (_show_result)
+              Text(
+                'Ihr Hörspektrum ist:\n $_maxlower - $_maxupper',
+                style: const TextStyle(fontSize: 24, color: Colors.green),
+                textAlign: TextAlign.center,
+              ),
           ],
         ),
       ),
