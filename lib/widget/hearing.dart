@@ -7,8 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:async';
 
-import '../model/sound.dart';
-
 class HearingPage extends StatefulWidget {
   const HearingPage({super.key, required this.title});
 
@@ -154,8 +152,6 @@ class _HearingPageState extends State<HearingPage> {
   }
 
   _cancel() async {
-    print("eeeeeeeeeeeeeee");
-    
     player.pause();
     player.stop();
     _streamSubscription.cancel();
@@ -195,7 +191,7 @@ class _HearingPageState extends State<HearingPage> {
               _connected
                   ? (_playing && _current != null
                       ? 'Es läuft gerade: $_current'
-                      : 'Drücken Sie den Button um Ihr Hörspektrum zu testen')
+                      : 'Button klicken um Ihr Hörspektrum zu testen.\n Wenn Sie nichts hören dann Nicken Sie.')
                   : 'Verbindung notwendig um den Test zu starten',
               style: const TextStyle(fontSize: 18),
               textAlign: TextAlign.center,
