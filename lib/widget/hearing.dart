@@ -151,7 +151,7 @@ class _HearingPageState extends State<HearingPage> {
     _cancel();
   }
 
-  _cancel() async {
+  _cancel() {
     player.pause();
     player.stop();
     _streamSubscription.cancel();
